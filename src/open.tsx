@@ -1,6 +1,8 @@
-import { Action, ActionPanel, Form, getApplications, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
+import { getAllConfigFiles, getAppByLanguage, getLanguage } from "./util";
+import getApps from "./util";
 
 type State = {
     config: Config;
@@ -11,7 +13,7 @@ type State = {
 interface App {
     bundleId: string | undefined;
     icon: string;
-    tag: string[];
+    shell: string | undefined;
 }
 interface Config {
     path: string[];
@@ -45,25 +47,7 @@ export default function Command() {
             });
         })
 
-        getApplications().then(applications => {
-            //com.microsoft.VSCode
-            const configWithApp = new Map<string, App>()
-            configWithApp.set('GoLand', { bundleId: '', icon: 'goland.svg', tag: ['go.mod'] })
-            configWithApp.set('PyCharm Professional', { bundleId: '', icon: 'pycharm.svg', tag: ['requirement.txt'] })
-            configWithApp.set('IntelliJ IDEA Ultimate', { bundleId: '', icon: 'idea.svg', tag: ['build.gradle', 'pom.xml'] })
-            configWithApp.set('WebStorm', { bundleId: '', icon: 'webstorm.svg', tag: ['package.json'] })
-            configWithApp.set('iTerm', { bundleId: '', icon: '', tag: ['item'] })
-
-            const apps = new Map<string, App>()
-            applications.forEach(application => {
-                const app = configWithApp.get(application.name)
-                if (app) {
-                    console.log(application)
-                    app.tag.forEach(t => {
-                        apps.set(t, { bundleId: application.bundleId, icon: app.icon, tag: app.tag })
-                    })
-                }
-            })
+        getApps().then(apps => {
             setState((pre) => ({ ...pre, applications: apps }))
         })
     }, [])
@@ -82,28 +66,39 @@ export default function Command() {
         }
     }
 
+    const openInIDE = (project: Project) => {
+        if (project.app.bundleId) {
+            open(project.projectPath, project.app.bundleId)
+        } else {
+            try {
+                child_process.exec(`${project.app.shell} ${project.projectPath}`)
+            } catch (e) {
+                showToast({
+                    style: Toast.Style.Failure,
+                    title: `Can not open in ${project.app.shell}`
+                });
+            }
+        }
+    }
+
     useEffect(() => {
         if (state.config.path.length == 0 || Array.from(state.applications.keys()).length == 0) {
             return
         }
-        const tags = ['', 'go.mod', 'pom.xml', 'build.gradle', 'requirement.txt', 'package.json']
+        const tags = [''].concat(getAllConfigFiles())
         const script = state.config.path.map((path) => tags.map(tag => `$(ls -dt ${path}/${tag})`).join('\n')).join('\n')
         console.log(script)
-        const projectWithKey = new Map<string, string>();
+        const projectWithLanguage = new Map<string, string | undefined>();
         child_process.execSync(`echo "${script}"`, { encoding: 'utf-8' }).
             split('\n').filter(item => item.length > 0).forEach(item => {
-                projectWithKey.set(item.substring(0, item.lastIndexOf('/')), item.substring(item.lastIndexOf('/') + 1))
+                projectWithLanguage.set(item.substring(0, item.lastIndexOf('/')), getLanguage(item.substring(item.lastIndexOf('/') + 1)))
             })
-        const projects = Array.from(projectWithKey.entries()).map(values => {
-            const app = state.applications.get(values[1])
+        const projects = Array.from(projectWithLanguage.entries()).map(values => {
             return {
                 projectName: values[0].substring(values[0].lastIndexOf('/') + 1),
                 projectPath: values[0],
-                app: state.config.openby != "vscode" && app ? app : {
-                    icon: "vscode.png",
-                    bundleId: "com.microsoft.VSCode",
-                    tag: [],
-                }
+                app: state.config.openby == "vscode" ? getAppByLanguage(undefined, state.applications) :
+                    getAppByLanguage(values[1], state.applications)
             }
         })
         if (projects.length > 0) {
@@ -141,7 +136,7 @@ export default function Command() {
                         icon={project.app.icon}
                         actions={
                             <ActionPanel>
-                                <Action.Open title="Open" application={project.app.bundleId} target={project.projectPath} />
+                                <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
                                 <Action icon={Icon.Globe} title="OpenInBrowser" onAction={() => { openInBrowser(project.projectPath) }} />
                                 <Action icon={Icon.Terminal} shortcut={{ modifiers: ["cmd"], key: "t" }} title="OpenInTerminal" onAction={() => {
                                     const bundleId = state.applications.get('item') ? state.applications.get('item')?.bundleId : 'com.apple.Terminal'
