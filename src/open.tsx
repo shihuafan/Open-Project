@@ -1,8 +1,7 @@
 import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
-import { getAllConfigFiles, getAppByLanguage, getLanguage } from "./util";
-import getApps from "./util";
+import { getAllConfigFiles, getAppByLanguage, getLanguage, getApps, getTerminalApp } from "./util";
 
 type State = {
     config: Config;
@@ -13,11 +12,13 @@ type State = {
 interface App {
     bundleId: string | undefined;
     icon: string;
-    shell: string | undefined;
+    shell?: string;
+    name: string;
 }
 interface Config {
     path: string[];
     openby: string;
+    terminal?: App;
 }
 
 interface Project {
@@ -138,10 +139,12 @@ export default function Command() {
                             <ActionPanel>
                                 <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
                                 <Action icon={Icon.Globe} title="OpenInBrowser" onAction={() => { openInBrowser(project.projectPath) }} />
-                                <Action icon={Icon.Terminal} shortcut={{ modifiers: ["cmd"], key: "t" }} title="OpenInTerminal" onAction={() => {
-                                    const bundleId = state.applications.get('item') ? state.applications.get('item')?.bundleId : 'com.apple.Terminal'
-                                    open(project.projectPath, bundleId)
-                                }} />
+                                <Action icon={Icon.Terminal} title="OpenInTerminal" shortcut={{ modifiers: ["cmd"], key: "t" }}
+                                    onAction={() => {
+                                        const bundleId = state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'
+                                        open(project.projectPath, bundleId)
+                                    }}
+                                />
                                 <ActionPanel.Section>
                                     <EditConfig config={state.config} handleSubmit={handleSubmit} />
                                 </ActionPanel.Section>
@@ -169,6 +172,17 @@ export default function Command() {
 }
 
 function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => void }) {
+
+    const [terminalApps, setTerminalApps] = useState<App[]>([
+        props.config.terminal ? props.config.terminal : { icon: '', name: 'terminal', bundleId: 'com.apple.Terminal' }
+    ]);
+
+    useEffect(() => {
+        getTerminalApp().then(apps => {
+            setTerminalApps((pre) => (apps))
+        })
+    }, [])
+
     return <Action.Push
         icon={Icon.Pencil}
         title="Edit Config"
@@ -179,6 +193,7 @@ function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => 
                         props.handleSubmit({
                             path: values.project.split('\n'),
                             openby: values.openby,
+                            terminal: terminalApps.find(app => app.name === values.terminal)
                         })
                     }} />
                 </ActionPanel>
@@ -187,6 +202,13 @@ function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => 
                 <Form.Dropdown id="openby" title="Open by" defaultValue={props.config.openby}>
                     <Form.Dropdown.Item value="vscode" title="VsCode First" icon="vscode.png" />
                     <Form.Dropdown.Item value="jetbrain" title="JetBrain First" icon="jetbrain.png" />
+                </Form.Dropdown>
+                <Form.Dropdown id="terminal" title="Terminal" defaultValue={props.config.terminal?.name}>
+                    {
+                        terminalApps.map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} />
+                        })
+                    }
                 </Form.Dropdown>
             </Form>
         } />
