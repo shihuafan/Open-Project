@@ -67,6 +67,18 @@ export default function Command() {
         }
     }
 
+    const openInFinder = (path: string) => {
+        try {
+            open(path, "com.apple.finder")
+        } catch (e) {
+            console.log(e)
+            showToast({
+                style: Toast.Style.Failure,
+                title: "Can not open in Finder"
+            });
+        }
+    }
+
     const openInIDE = (project: Project) => {
         if (project.app.bundleId) {
             open(project.projectPath, project.app.bundleId)
@@ -144,6 +156,9 @@ export default function Command() {
                                         const bundleId = state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'
                                         open(project.projectPath, bundleId)
                                     }}
+                                />
+                                <Action icon={Icon.Finder} title="OpenInFinder" shortcut={{ modifiers: ["opt"], key: "enter" }}
+                                    onAction={() => { openInFinder(project.projectPath) }}
                                 />
                                 <ActionPanel.Section>
                                     <EditConfig config={state.config} handleSubmit={handleSubmit} />
