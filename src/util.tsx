@@ -1,4 +1,4 @@
-import { getApplications } from "@raycast/api"
+import { getApplications, Icon } from "@raycast/api"
 
 const appConfigMap = new Map(Object.entries({
     'GoLand': { icon: 'goland.svg', shell: 'goland', language: 'golang' },
@@ -15,7 +15,9 @@ const configFileWithLanguage = new Map(Object.entries({
     'package.json': 'js'
 }))
 
-export default async function getApps() {
+const termianlApp = ['iTerm', 'Terminal', 'Warp']
+
+export async function getApps() {
     const applications = await getApplications()
     const apps = new Map()
     applications.forEach(item => {
@@ -43,4 +45,10 @@ export function getAllConfigFiles(): string[] {
 
 export function getLanguage(configFile: string): string | undefined {
     return configFileWithLanguage.get(configFile)
+}
+
+export async function getTerminalApp() {
+    const applications = await getApplications()
+    return applications.filter(item => termianlApp.find(name => name == item.name)).
+        map(item => { return { icon: Icon.Terminal, name: item.name, bundleId: item.bundleId, shell: undefined } })
 }
