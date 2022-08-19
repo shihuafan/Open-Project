@@ -2,7 +2,7 @@
     "name": "open",
     "title": "Open Project",
     "description": "open your project in different way",
-    "icon": "icon.png",
+    "icon": "icon_handsome.png",
     "author": "shihuafan",
     "license": "MIT",
     "commands": [{
