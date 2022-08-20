@@ -170,6 +170,13 @@ export default function Command() {
                     <List.Item
                         title='Loading ......'
                         icon={Icon.Circle}
+                        actions={
+                            <ActionPanel>
+                                <ActionPanel.Section>
+                                    <EditConfig config={state.config} handleSubmit={handleSubmit} />
+                                </ActionPanel.Section>
+                            </ActionPanel>
+                        }
                     /> :
                     <List.Item
                         title='Add New Project'
