@@ -19,7 +19,7 @@ interface Config {
     path: string[];
     openby: string;
     terminal?: App;
-    customApp?: App;
+    defaultApp?: App;
 }
 
 interface Project {
@@ -78,7 +78,7 @@ export default function Command() {
     );
 
     const [state, setState] = useState<State>({
-        config: { path: [], openby: 'vscode' },
+        config: { path: [], openby: 'default' },
         projects: [],
         applications: new Map(),
     });
@@ -118,8 +118,8 @@ export default function Command() {
             return {
                 projectName: values[0].substring(values[0].lastIndexOf('/') + 1),
                 projectPath: values[0],
-                app: state.config.openby == "vscode" ? getAppByLanguage(undefined, state.applications) :
-                    getAppByLanguage(values[1], state.applications)
+                app: state.config.openby != "default" ? getAppByLanguage(values[1], state.applications, state.config.defaultApp) :
+                    state.config.defaultApp
             }
         })
         if (projects.length > 0) {
@@ -136,7 +136,7 @@ export default function Command() {
                         key={project.projectPath}
                         title={project.projectName}
                         subtitle={project.projectPath}
-                        icon={project.app.icon}
+                        icon={project.app.icon ? project.app.icon : Icon.Code}
                         actions={
                             <ActionPanel>
                                 <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
@@ -145,10 +145,10 @@ export default function Command() {
                                     application={state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'}
                                     target={project.projectPath} />
                                 {
-                                    state.config.customApp ? <Action.Open icon={Icon.Code} shortcut={{ modifiers: ["opt"], key: "c" }}
-                                        title={`Open In ${state.config.customApp.name}`}
-                                        application={state.config.customApp.bundleId} target={project.projectPath} /> :
-                                        <Action.Open icon={Icon.Finder} title="Open In Finder" shortcut={{ modifiers: ["opt"], key: "c" }}
+                                    state.config.defaultApp ? <Action.Open icon={Icon.Code} shortcut={{ modifiers: ["opt"], key: "enter" }}
+                                        title={`Open In ${state.config.defaultApp.name}`}
+                                        application={state.config.defaultApp.bundleId} target={project.projectPath} /> :
+                                        <Action.Open icon={Icon.Finder} title="Open In Finder" shortcut={{ modifiers: ["opt"], key: "enter" }}
                                             application='com.apple.finder' target={project.projectPath} />
                                 }
                                 <ActionPanel.Section>
@@ -187,13 +187,13 @@ export default function Command() {
 function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => void }) {
 
 
-    const [customApps, setCustomApps] = useState<App[]>(
-        (props.config.terminal ? [props.config.terminal] : []).concat(props.config.customApp ? [props.config.customApp] : [])
+    const [defaultApps, setdefaultApps] = useState<App[]>(
+        (props.config.terminal ? [props.config.terminal] : []).concat(props.config.defaultApp ? [props.config.defaultApp] : [])
     );
 
     useEffect(() => {
         getAllApp().then(apps => {
-            setCustomApps(() => (apps))
+            setdefaultApps(() => (apps))
         })
     }, [])
 
@@ -207,33 +207,29 @@ function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => 
                         props.handleSubmit({
                             path: values.project.split('\n'),
                             openby: values.openby,
-                            terminal: customApps.find(app => app.name === values.terminal),
-                            customApp: customApps.find(app => app.name === values.custom_app),
+                            terminal: defaultApps.find(app => app.name === values.terminal),
+                            defaultApp: defaultApps.find(app => app.name === values.default_app),
                         })
                     }} />
                 </ActionPanel>
             }>
                 <Form.TextArea id='project' title='Projects' defaultValue={props.config.path.join('\n')} />
+                <Form.Dropdown id="default_app" title="Default Application" defaultValue={props.config.defaultApp?.name}
+                    info="set default application to open your project">
+                    {
+                        defaultApps.map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} />
+                        })
+                    }
+                </Form.Dropdown>
                 <Form.Dropdown id="openby" title="Open by" defaultValue={props.config.openby}>
-                    <Form.Dropdown.Item value="vscode" title="VsCode First" icon="vscode.png" />
+                    <Form.Dropdown.Item value="default" title="Always Default" icon={Icon.Code} />
                     <Form.Dropdown.Item value="jetbrain" title="JetBrain First" icon="jetbrain.png" />
                 </Form.Dropdown>
                 <Form.Dropdown id="terminal" title="Terminal" defaultValue={props.config.terminal?.name}>
                     {
-                        customApps.filter(item => isTerminalApp(item.name)).map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={Icon.Terminal} />
-                        })
-                    }
-                </Form.Dropdown>
-                <Form.Separator />
-                <Form.Description
-                    title="Custom"
-                    text="set custom application to open your project"
-                />
-                <Form.Dropdown id="custom_app" title="Application" defaultValue={props.config.customApp?.name}>
-                    {
-                        customApps.map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} />
+                        defaultApps.filter(item => isTerminalApp(item.name)).map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} />
                         })
                     }
                 </Form.Dropdown>

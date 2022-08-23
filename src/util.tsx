@@ -1,5 +1,5 @@
 import { getApplications, Icon } from "@raycast/api"
-
+import fs from 'fs'
 const appConfigMap = new Map(Object.entries({
     'GoLand': { icon: 'goland.svg', shell: 'goland', language: 'golang' },
     'IntelliJ IDEA': { icon: 'idea.svg', shell: 'idea', language: 'java' },
@@ -35,8 +35,8 @@ export async function getApps() {
     return apps
 }
 
-export function getAppByLanguage(language: string | undefined, apps: Map<string, any>): any {
-    return (language && apps.get(language)) ? apps.get(language) : apps.get('default')
+export function getAppByLanguage(language: string | undefined, apps: Map<string, any>, defult: any): any {
+    return (language && apps.get(language)) ? apps.get(language) : defult
 }
 
 export function getAllConfigFiles(): string[] {
@@ -47,7 +47,7 @@ export function getLanguage(configFile: string): string | undefined {
     return configFileWithLanguage.get(configFile)
 }
 
-export function isTerminalApp(appName:string):boolean {
+export function isTerminalApp(appName: string): boolean {
     return termianlApp.find(name => name == appName) != undefined
 }
 
@@ -55,8 +55,13 @@ export async function getAllApp() {
     const applications = await getApplications()
     return applications.
         map(item => {
+            const data = fs.readFileSync(`${item.path}/Contents/Info.plist`, 'utf8')
+            const iconMatch = data.match(/<key>CFBundleIconFile<\/key>\s+<string>([\w\.]+)<\/string>/)
+            const iconPath = iconMatch ? iconMatch[1].endsWith('.icns') ?
+                `${item.path}/Contents/Resources/${iconMatch[1]}` : `${item.path}/Contents/Resources/${iconMatch[1]}.icns` :
+                'vscode.png'
             return {
-                icon: '',
+                icon: iconPath,
                 name: item.name,
                 bundleId: item.bundleId,
                 shell: undefined
