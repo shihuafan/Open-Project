@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
-import { getAllConfigFiles, getAppByLanguage, getLanguage, getApps, getTerminalApp } from "./util";
+import { getAllConfigFiles, getAppByLanguage, getLanguage, getApps, getAllApp, isTerminalApp } from "./util";
 
 type State = {
     config: Config;
@@ -19,6 +19,7 @@ interface Config {
     path: string[];
     openby: string;
     terminal?: App;
+    customApp?: App;
 }
 
 interface Project {
@@ -28,30 +29,6 @@ interface Project {
 }
 
 export default function Command() {
-
-    const [state, setState] = useState<State>({
-        config: { path: [], openby: 'vscode' },
-        projects: [],
-        applications: new Map(),
-    });
-
-    useEffect(() => {
-        LocalStorage.getItem<string>("config").then(configStr => {
-            if (configStr) {
-                const config: Config = JSON.parse(configStr);
-                setState((previous) => ({ ...previous, config: config }));
-            }
-        }).catch(reason => {
-            showToast({
-                style: Toast.Style.Failure,
-                title: "load fail, error: " + reason,
-            });
-        })
-
-        getApps().then(apps => {
-            setState((pre) => ({ ...pre, applications: apps }))
-        })
-    }, [])
 
     const openInBrowser = (path: string) => {
         try {
@@ -63,18 +40,6 @@ export default function Command() {
             showToast({
                 style: Toast.Style.Failure,
                 title: "Can not open in Browser"
-            });
-        }
-    }
-
-    const openInFinder = (path: string) => {
-        try {
-            open(path, "com.apple.finder")
-        } catch (e) {
-            console.log(e)
-            showToast({
-                style: Toast.Style.Failure,
-                title: "Can not open in Finder"
             });
         }
     }
@@ -94,13 +59,56 @@ export default function Command() {
         }
     }
 
+    const handleSubmit = useCallback(
+        // save to storage and update
+        (config: Config) => {
+            LocalStorage.setItem("config", JSON.stringify(config)).then(() => {
+                showToast({
+                    style: Toast.Style.Success,
+                    title: "save successed",
+                });
+                setState((previous) => ({ ...previous, config: config }));
+            }).catch(reason => {
+                showToast({
+                    style: Toast.Style.Failure,
+                    title: "save fail, error: " + reason,
+                });
+            })
+        }, []
+    );
+
+    const [state, setState] = useState<State>({
+        config: { path: [], openby: 'vscode' },
+        projects: [],
+        applications: new Map(),
+    });
+
+    useEffect(() => {
+        LocalStorage.getItem<string>("config").then(configStr => {
+            if (configStr) {
+                console.log(configStr)
+                const config: Config = JSON.parse(configStr);
+                setState((previous) => ({ ...previous, config: config }));
+            }
+        }).catch(reason => {
+            showToast({
+                style: Toast.Style.Failure,
+                title: "load fail, error: " + reason,
+            });
+        })
+
+        getApps().then(apps => {
+            setState((pre) => ({ ...pre, applications: apps }))
+        })
+    }, [])
+
     useEffect(() => {
         if (state.config.path.length == 0 || Array.from(state.applications.keys()).length == 0) {
             return
         }
         const tags = [''].concat(getAllConfigFiles())
         const script = state.config.path.map((path) => tags.map(tag => `$(ls -dt ${path}/${tag})`).join('\n')).join('\n')
-        console.log(script)
+        // console.log(script)
         const projectWithLanguage = new Map<string, string | undefined>();
         child_process.execSync(`echo "${script}"`, { encoding: 'utf-8' }).
             split('\n').filter(item => item.length > 0).forEach(item => {
@@ -120,24 +128,6 @@ export default function Command() {
         }
     }, [state.config, state.applications])
 
-    const handleSubmit = useCallback(
-        // save to storage and update
-        (config: Config) => {
-            LocalStorage.setItem("config", JSON.stringify(config)).then(() => {
-                showToast({
-                    style: Toast.Style.Success,
-                    title: "save successed",
-                });
-                setState((previous) => ({ ...previous, config: config }));
-            }).catch(reason => {
-                showToast({
-                    style: Toast.Style.Failure,
-                    title: "save fail, error: " + reason,
-                });
-            })
-        }, []
-    );
-
     return (
         <List>
             {
@@ -151,15 +141,16 @@ export default function Command() {
                             <ActionPanel>
                                 <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
                                 <Action icon={Icon.Globe} title="OpenInBrowser" onAction={() => { openInBrowser(project.projectPath) }} />
-                                <Action icon={Icon.Terminal} title="OpenInTerminal" shortcut={{ modifiers: ["cmd"], key: "t" }}
-                                    onAction={() => {
-                                        const bundleId = state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'
-                                        open(project.projectPath, bundleId)
-                                    }}
-                                />
-                                <Action icon={Icon.Finder} title="OpenInFinder" shortcut={{ modifiers: ["opt"], key: "enter" }}
-                                    onAction={() => { openInFinder(project.projectPath) }}
-                                />
+                                <Action.Open icon={Icon.Terminal} title="Open In Terminal" shortcut={{ modifiers: ["cmd"], key: "t" }}
+                                    application={state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'}
+                                    target={project.projectPath} />
+                                {
+                                    state.config.customApp ? <Action.Open icon={Icon.Code} shortcut={{ modifiers: ["opt"], key: "c" }}
+                                        title={`Open In ${state.config.customApp.name}`}
+                                        application={state.config.customApp.bundleId} target={project.projectPath} /> :
+                                        <Action.Open icon={Icon.Finder} title="Open In Finder" shortcut={{ modifiers: ["opt"], key: "c" }}
+                                            application='com.apple.finder' target={project.projectPath} />
+                                }
                                 <ActionPanel.Section>
                                     <EditConfig config={state.config} handleSubmit={handleSubmit} />
                                 </ActionPanel.Section>
@@ -195,13 +186,14 @@ export default function Command() {
 
 function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => void }) {
 
-    const [terminalApps, setTerminalApps] = useState<App[]>([
-        props.config.terminal ? props.config.terminal : { icon: '', name: 'terminal', bundleId: 'com.apple.Terminal' }
-    ]);
+
+    const [customApps, setCustomApps] = useState<App[]>(
+        (props.config.terminal ? [props.config.terminal] : []).concat(props.config.customApp ? [props.config.customApp] : [])
+    );
 
     useEffect(() => {
-        getTerminalApp().then(apps => {
-            setTerminalApps((pre) => (apps))
+        getAllApp().then(apps => {
+            setCustomApps(() => (apps))
         })
     }, [])
 
@@ -215,7 +207,8 @@ function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => 
                         props.handleSubmit({
                             path: values.project.split('\n'),
                             openby: values.openby,
-                            terminal: terminalApps.find(app => app.name === values.terminal)
+                            terminal: customApps.find(app => app.name === values.terminal),
+                            customApp: customApps.find(app => app.name === values.custom_app),
                         })
                     }} />
                 </ActionPanel>
@@ -227,8 +220,20 @@ function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => 
                 </Form.Dropdown>
                 <Form.Dropdown id="terminal" title="Terminal" defaultValue={props.config.terminal?.name}>
                     {
-                        terminalApps.map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} />
+                        customApps.filter(item => isTerminalApp(item.name)).map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={Icon.Terminal} />
+                        })
+                    }
+                </Form.Dropdown>
+                <Form.Separator />
+                <Form.Description
+                    title="Custom"
+                    text="set custom application to open your project"
+                />
+                <Form.Dropdown id="custom_app" title="Application" defaultValue={props.config.customApp?.name}>
+                    {
+                        customApps.map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} />
                         })
                     }
                 </Form.Dropdown>

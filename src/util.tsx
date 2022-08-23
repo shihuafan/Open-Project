@@ -47,8 +47,19 @@ export function getLanguage(configFile: string): string | undefined {
     return configFileWithLanguage.get(configFile)
 }
 
-export async function getTerminalApp() {
+export function isTerminalApp(appName:string):boolean {
+    return termianlApp.find(name => name == appName) != undefined
+}
+
+export async function getAllApp() {
     const applications = await getApplications()
-    return applications.filter(item => termianlApp.find(name => name == item.name)).
-        map(item => { return { icon: Icon.Terminal, name: item.name, bundleId: item.bundleId, shell: undefined } })
+    return applications.
+        map(item => {
+            return {
+                icon: '',
+                name: item.name,
+                bundleId: item.bundleId,
+                shell: undefined
+            }
+        })
 }
