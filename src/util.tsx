@@ -35,8 +35,12 @@ export async function getApps() {
     return apps
 }
 
-export function getAppByLanguage(language: string | undefined, apps: Map<string, any>, defult: any): any {
-    return (language && apps.get(language)) ? apps.get(language) : defult
+export function getAppByLanguage(filePath: string, apps: Map<string, any>, defult: any): any {
+    const languages = fs.readdirSync(filePath).
+        map(item => configFileWithLanguage.get(item)).
+        map(item => item ? item : '').
+        filter(item => item.length > 0)
+    return (languages.length > 0 && apps.get(languages[0])) ? apps.get(languages[0]) : defult
 }
 
 export function getAllConfigFiles(): string[] {
