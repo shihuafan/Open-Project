@@ -60,7 +60,7 @@ export async function getAllApp() {
     return applications.
         map(item => {
             const data = fs.readFileSync(`${item.path}/Contents/Info.plist`, 'utf8')
-            const iconMatch = data.match(/<key>CFBundleIconFile<\/key>\s+<string>([\w\.]+)<\/string>/)
+            const iconMatch = data.match(/<key>CFBundleIconFile<\/key>\s*<string>([\w\. ]+)<\/string>/)
             const iconPath = iconMatch ? iconMatch[1].endsWith('.icns') ?
                 `${item.path}/Contents/Resources/${iconMatch[1]}` : `${item.path}/Contents/Resources/${iconMatch[1]}.icns` :
                 'vscode.png'
