@@ -1,5 +1,6 @@
 import { getApplications, Icon } from "@raycast/api"
 import fs from 'fs'
+import bPlistParser, { parseFileSync } from "bplist-parser";
 const appConfigMap = new Map(Object.entries({
     'GoLand': { icon: 'goland.svg', shell: 'goland', language: 'golang' },
     'IntelliJ IDEA': { icon: 'idea.svg', shell: 'idea', language: 'java' },
@@ -60,15 +61,26 @@ export async function getAllApp() {
     return applications.
         map(item => {
             const data = fs.readFileSync(`${item.path}/Contents/Info.plist`, 'utf8')
-            const iconMatch = data.match(/<key>CFBundleIconFile<\/key>\s+<string>([\w\.]+)<\/string>/)
+            let iconMatch: RegExpMatchArray | null
+
+            if (data.startsWith('bplist')) {
+                const parsedData = JSON.stringify(bPlistParser.parseFileSync(`${item.path}/Contents/Info.plist`))
+                iconMatch = parsedData.match(/"CFBundleIconFile":"([\w\. ]+)",/)
+
+            } else {
+                iconMatch = data.match(/<key>CFBundleIconFile<\/key>\s*<string>([\w\. ]+)<\/string>/)
+            }
+
             const iconPath = iconMatch ? iconMatch[1].endsWith('.icns') ?
-                `${item.path}/Contents/Resources/${iconMatch[1]}` : `${item.path}/Contents/Resources/${iconMatch[1]}.icns` :
-                'vscode.png'
+              `${item.path}/Contents/Resources/${iconMatch[1]}` : `${item.path}/Contents/Resources/${iconMatch[1]}.icns` :
+              'vscode.png'
+
             return {
                 icon: iconPath,
                 name: item.name,
                 bundleId: item.bundleId,
                 shell: undefined
+
             }
         })
 }

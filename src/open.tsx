@@ -114,7 +114,11 @@ export default function Command() {
                     projectName: item.substring(item.lastIndexOf('/') + 1),
                     projectPath: item,
                     app: state.config.openby != "default" ? getAppByLanguage(item, state.applications, state.config.defaultApp) :
-                        state.config.defaultApp
+                      state.config.defaultApp ? state.config.defaultApp : {
+                              icon: Icon.Finder,
+                              name: 'finder',
+                              bundleId: 'com.apple.finder'
+                    }
                 }
             })
         if (projects.length > 0) {

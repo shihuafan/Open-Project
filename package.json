@@ -5,15 +5,18 @@
     "icon": "icon.png",
     "author": "shihuafan",
     "license": "MIT",
-    "commands": [{
-        "name": "open",
-        "title": "Open Project",
-        "subtitle": "open project",
-        "description": "open your project in different way",
-        "mode": "view"
-    }],
+    "commands": [
+        {
+            "name": "open",
+            "title": "Open Project",
+            "subtitle": "open project",
+            "description": "open your project in different way",
+            "mode": "view"
+        }
+    ],
     "dependencies": {
         "@raycast/api": "^1.38.3",
+        "bplist-parser": "^0.3.2",
         "react": "^18.2.0"
     },
     "devDependencies": {
