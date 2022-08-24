@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
-import { getAllConfigFiles, getAppByLanguage, getLanguage, getApps, getAllApp, isTerminalApp } from "./util";
+import { getAppByLanguage, getApps, getAllApp, isTerminalApp } from "./util";
 
 type State = {
     config: Config;
@@ -106,25 +106,19 @@ export default function Command() {
         if (state.config.path.length == 0 || Array.from(state.applications.keys()).length == 0) {
             return
         }
-        const tags = [''].concat(getAllConfigFiles())
-        const script = state.config.path.map((path) => tags.map(tag => `$(ls -dt ${path}/${tag})`).join('\n')).join('\n')
+        const script = state.config.path.map((path) => `$(ls -dtF ${path})`).join('\n')
         // console.log(script)
-        const projectWithLanguage = new Map<string, string | undefined>();
-        child_process.execSync(`echo "${script}"`, { encoding: 'utf-8' }).
-            split('\n').filter(item => item.length > 0).forEach(item => {
-                projectWithLanguage.set(item.substring(0, item.lastIndexOf('/')), getLanguage(item.substring(item.lastIndexOf('/') + 1)))
+        const projects = child_process.execSync(`echo "${script}"`, { encoding: 'utf-8' }).
+            split('\n').filter(item => item.length > 0 && item.endsWith('/')).map(item => item.substring(0, item.length - 1)).map(item => {
+                return {
+                    projectName: item.substring(item.lastIndexOf('/') + 1),
+                    projectPath: item,
+                    app: state.config.openby != "default" ? getAppByLanguage(item, state.applications, state.config.defaultApp) :
+                        state.config.defaultApp
+                }
             })
-        const projects = Array.from(projectWithLanguage.entries()).map(values => {
-            return {
-                projectName: values[0].substring(values[0].lastIndexOf('/') + 1),
-                projectPath: values[0],
-                app: state.config.openby != "default" ? getAppByLanguage(values[1], state.applications, state.config.defaultApp) :
-                    state.config.defaultApp
-            }
-        })
         if (projects.length > 0) {
             setState((pre) => ({ ...pre, projects: projects }))
-            console.log((`${state.projects.length}`))
         }
     }, [state.config, state.applications])
 
@@ -145,7 +139,7 @@ export default function Command() {
                                     application={state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'}
                                     target={project.projectPath} />
                                 {
-                                    state.config.defaultApp ? <Action.Open icon={Icon.Code} shortcut={{ modifiers: ["opt"], key: "enter" }}
+                                    state.config.defaultApp ? <Action.Open icon={state.config.defaultApp.icon} shortcut={{ modifiers: ["opt"], key: "enter" }}
                                         title={`Open In ${state.config.defaultApp.name}`}
                                         application={state.config.defaultApp.bundleId} target={project.projectPath} /> :
                                         <Action.Open icon={Icon.Finder} title="Open In Finder" shortcut={{ modifiers: ["opt"], key: "enter" }}
