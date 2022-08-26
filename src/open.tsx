@@ -138,7 +138,7 @@ export default function Command() {
                         actions={
                             <ActionPanel>
                                 <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
-                                <Action icon={Icon.Globe} title="OpenInBrowser" onAction={() => { openInBrowser(project.projectPath) }} />
+                                <Action icon={Icon.Globe} title="Open In Browser" onAction={() => { openInBrowser(project.projectPath) }} />
                                 <Action.Open icon={Icon.Terminal} title="Open In Terminal" shortcut={{ modifiers: ["cmd"], key: "t" }}
                                     application={state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'}
                                     target={project.projectPath} />

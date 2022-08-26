@@ -1,6 +1,6 @@
-import { getApplications, Icon } from "@raycast/api"
+import { getApplications } from "@raycast/api"
 import fs from 'fs'
-import bPlistParser, { parseFileSync } from "bplist-parser";
+import bPlistParser from "bplist-parser";
 const appConfigMap = new Map(Object.entries({
     'GoLand': { icon: 'goland.svg', shell: 'goland', language: 'golang' },
     'IntelliJ IDEA': { icon: 'idea.svg', shell: 'idea', language: 'java' },
