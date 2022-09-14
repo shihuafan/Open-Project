@@ -185,8 +185,6 @@ export default function Command() {
 
 function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath: Config) => void }) {
 
-    const [defaultApps, setdefaultApps] = useState<App[]>(props.apps);
-
     return <Action.Push
         icon={Icon.Pencil}
         title="Edit Config"
@@ -197,8 +195,8 @@ function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath
                         props.handleSubmit({
                             path: values.project.split('\n'),
                             openby: values.openby,
-                            terminal: defaultApps.find(app => app.name === values.terminal),
-                            defaultApp: defaultApps.find(app => app.name === values.default_app),
+                            terminal: props.apps.find(app => app.name === values.terminal),
+                            defaultApp: props.apps.find(app => app.name === values.default_app),
                         })
                     }} />
                 </ActionPanel>
@@ -207,8 +205,8 @@ function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath
                 <Form.Dropdown id="default_app" title="Default Application" defaultValue={props.config.defaultApp?.name}
                     info="set default application to open your project">
                     {
-                        defaultApps.map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} />
+                        props.apps.map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} key={app.name}/>
                         })
                     }
                 </Form.Dropdown>
@@ -218,8 +216,8 @@ function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath
                 </Form.Dropdown>
                 <Form.Dropdown id="terminal" title="Terminal" defaultValue={props.config.terminal?.name}>
                     {
-                        defaultApps.filter(item => isTerminalApp(item.name)).map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} />
+                        props.apps.filter(item => isTerminalApp(item.name)).map(app => {
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} key={app.name}/>
                         })
                     }
                 </Form.Dropdown>
