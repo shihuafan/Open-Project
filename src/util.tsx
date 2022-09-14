@@ -1,12 +1,6 @@
 import { getApplications } from "@raycast/api"
 import fs from 'fs'
 import bPlistParser from "bplist-parser";
-const appConfigMap = new Map(Object.entries({
-    'GoLand': { icon: 'goland.svg', shell: 'goland', language: 'golang' },
-    'IntelliJ IDEA': { icon: 'idea.svg', shell: 'idea', language: 'java' },
-    'PyCharm Professional': { icon: 'pycharm.svg', shell: 'pycharm', language: 'python' },
-    'Visual Studio Code': { icon: 'vscode.png', shell: undefined, language: 'default' }
-}))
 
 const configFileWithLanguage = new Map(Object.entries({
     'go.mod': 'golang',
@@ -16,32 +10,46 @@ const configFileWithLanguage = new Map(Object.entries({
     'package.json': 'js'
 }))
 
+const languageWithApp = new Map(Object.entries({
+    'golang': [
+        { name: 'GoLand', shell: 'goland' }
+    ],
+    'java': [
+        { name: 'IntelliJ IDEA', shell: 'idea' },
+        { name: 'IntelliJ IDEA Ultimate', shell: 'idea' }
+    ],
+    'python': [
+        { name: 'PyCharm Professional', shell: 'pycharm' }
+    ],
+    'js': [
+        { name: 'WebStorm', shell: 'webstorm' }
+    ],
+    'c': [
+        { name: 'CLion', shell: 'clion' }
+    ],
+    'cpp': [
+        { name: 'CLion', shell: 'clion' }
+    ]
+}))
+
 const termianlApp = ['iTerm', 'Terminal', 'Warp']
 
-export async function getApps() {
-    const applications = await getApplications()
-    const apps = new Map()
-    applications.forEach(item => {
-        const config = appConfigMap.get(item.name)
-        if (config) {
-            if (item.bundleId?.startsWith('com.jetbrains.toolbox')) {
-                apps.set(config.language, { shell: config.shell, icon: config.icon })
-            } else {
-                console.log(item.bundleId)
-                apps.set(config.language, { bundleId: item.bundleId, icon: config.icon })
-            }
-        }
-    })
-
-    return apps
-}
-
-export function getAppByLanguage(filePath: string, apps: Map<string, any>, defult: any): any {
+export function getAppByLanguage(filePath: string, apps: any[], defult: any): any {
     const languages = fs.readdirSync(filePath).
         map(item => configFileWithLanguage.get(item)).
         map(item => item ? item : '').
         filter(item => item.length > 0)
-    return (languages.length > 0 && apps.get(languages[0])) ? apps.get(languages[0]) : defult
+    if (languages.length === 0) {
+        return defult
+    }
+    const target = languageWithApp.get(languages[0])?.map(item => {
+        const app = apps.find(app => app.name == item.name)
+        if (app) {
+            app.shell = item.shell
+            return app
+        }
+    }).filter(item => item !== undefined)
+    return (target && target.length > 0) ? target[0] : defult
 }
 
 export function getAllConfigFiles(): string[] {
@@ -72,15 +80,14 @@ export async function getAllApp() {
             }
 
             const iconPath = iconMatch ? iconMatch[1].endsWith('.icns') ?
-              `${item.path}/Contents/Resources/${iconMatch[1]}` : `${item.path}/Contents/Resources/${iconMatch[1]}.icns` :
-              'vscode.png'
+                `${item.path}/Contents/Resources/${iconMatch[1]}` : `${item.path}/Contents/Resources/${iconMatch[1]}.icns` :
+                'vscode.png'
 
             return {
                 icon: iconPath,
                 name: item.name,
                 bundleId: item.bundleId,
                 shell: undefined
-
             }
         })
 }

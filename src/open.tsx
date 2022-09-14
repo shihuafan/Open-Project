@@ -1,12 +1,12 @@
 import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
-import { getAppByLanguage, getApps, getAllApp, isTerminalApp } from "./util";
+import { getAppByLanguage, getAllApp, isTerminalApp } from "./util";
 
 type State = {
     config: Config;
     projects: Project[];
-    applications: Map<string, App>;
+    applications: App[];
 };
 
 interface App {
@@ -80,7 +80,7 @@ export default function Command() {
     const [state, setState] = useState<State>({
         config: { path: [], openby: 'default' },
         projects: [],
-        applications: new Map(),
+        applications: [],
     });
 
     useEffect(() => {
@@ -97,7 +97,7 @@ export default function Command() {
             });
         })
 
-        getApps().then(apps => {
+        getAllApp().then(apps => {
             setState((pre) => ({ ...pre, applications: apps }))
         })
     }, [])
@@ -114,13 +114,14 @@ export default function Command() {
                     projectName: item.substring(item.lastIndexOf('/') + 1),
                     projectPath: item,
                     app: state.config.openby != "default" ? getAppByLanguage(item, state.applications, state.config.defaultApp) :
-                      state.config.defaultApp ? state.config.defaultApp : {
-                              icon: Icon.Finder,
-                              name: 'finder',
-                              bundleId: 'com.apple.finder'
-                    }
+                        state.config.defaultApp ? state.config.defaultApp : {
+                            icon: Icon.Finder,
+                            name: 'finder',
+                            bundleId: 'com.apple.finder'
+                        }
                 }
             })
+        // projects.forEach(item => console.log(item))
         if (projects.length > 0) {
             setState((pre) => ({ ...pre, projects: projects }))
         }
@@ -150,7 +151,7 @@ export default function Command() {
                                             application='com.apple.finder' target={project.projectPath} />
                                 }
                                 <ActionPanel.Section>
-                                    <EditConfig config={state.config} handleSubmit={handleSubmit} />
+                                    <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
                                 </ActionPanel.Section>
                             </ActionPanel>
                         }
@@ -162,7 +163,7 @@ export default function Command() {
                         actions={
                             <ActionPanel>
                                 <ActionPanel.Section>
-                                    <EditConfig config={state.config} handleSubmit={handleSubmit} />
+                                    <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
                                 </ActionPanel.Section>
                             </ActionPanel>
                         }
@@ -172,7 +173,7 @@ export default function Command() {
                         actions={
                             <ActionPanel>
                                 <ActionPanel.Section>
-                                    <EditConfig config={state.config} handleSubmit={handleSubmit} />
+                                    <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
                                 </ActionPanel.Section>
                             </ActionPanel>
                         }
@@ -182,18 +183,9 @@ export default function Command() {
     );
 }
 
-function EditConfig(props: { config: Config, handleSubmit: (newPath: Config) => void }) {
+function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath: Config) => void }) {
 
-
-    const [defaultApps, setdefaultApps] = useState<App[]>(
-        (props.config.terminal ? [props.config.terminal] : []).concat(props.config.defaultApp ? [props.config.defaultApp] : [])
-    );
-
-    useEffect(() => {
-        getAllApp().then(apps => {
-            setdefaultApps(() => (apps))
-        })
-    }, [])
+    const [defaultApps, setdefaultApps] = useState<App[]>(props.apps);
 
     return <Action.Push
         icon={Icon.Pencil}
