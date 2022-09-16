@@ -19,7 +19,9 @@ const languageWithApp = new Map(Object.entries({
         { name: 'IntelliJ IDEA Ultimate', shell: 'idea' }
     ],
     'python': [
-        { name: 'PyCharm Professional', shell: 'pycharm' }
+        { name: 'PyCharm Professional', shell: 'pycharm' },
+        { name: 'PyCharm', shell: 'pycharm' },
+        { name: 'PyCharm Community', shell: 'pycharm' },
     ],
     'js': [
         { name: 'WebStorm', shell: 'webstorm' }
@@ -67,6 +69,7 @@ export function isTerminalApp(appName: string): boolean {
 export async function getAllApp() {
     const applications = await getApplications()
     return applications.
+        filter(item => fs.existsSync(`${item.path}/Contents/Info.plist`)).
         map(item => {
             const data = fs.readFileSync(`${item.path}/Contents/Info.plist`, 'utf8')
             let iconMatch: RegExpMatchArray | null
