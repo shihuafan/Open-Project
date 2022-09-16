@@ -34,15 +34,15 @@ const languageWithApp = new Map(Object.entries({
     ]
 }))
 
-const termianlApp = ['iTerm', 'Terminal', 'Warp']
+const terminalApp = ['iTerm', 'Terminal', 'Warp']
 
-export function getAppByLanguage(filePath: string, apps: any[], defult: any): any {
+export function getAppByLanguage(filePath: string, apps: any[], defaultApp: any): any {
     const languages = fs.readdirSync(filePath).
         map(item => configFileWithLanguage.get(item)).
         map(item => item ? item : '').
         filter(item => item.length > 0)
     if (languages.length === 0) {
-        return defult
+        return defaultApp
     }
     const target = languageWithApp.get(languages[0])?.map(item => {
         const app = apps.find(app => app.name == item.name)
@@ -51,19 +51,11 @@ export function getAppByLanguage(filePath: string, apps: any[], defult: any): an
             return app
         }
     }).filter(item => item !== undefined)
-    return (target && target.length > 0) ? target[0] : defult
-}
-
-export function getAllConfigFiles(): string[] {
-    return Array.from(configFileWithLanguage.keys())
-}
-
-export function getLanguage(configFile: string): string | undefined {
-    return configFileWithLanguage.get(configFile)
+    return (target && target.length > 0) ? target[0] : defaultApp
 }
 
 export function isTerminalApp(appName: string): boolean {
-    return termianlApp.find(name => name == appName) != undefined
+    return terminalApp.find(name => name == appName) != undefined
 }
 
 export async function getAllApp() {
