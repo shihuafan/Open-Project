@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
 import { getAppByLanguage, getAllApp, isTerminalApp } from "./util";
 import { App, Config, Project } from "./model";
-
+import gitUrlParse from "git-url-parse";
 type State = {
     config: Config;
     projects: Project[];
@@ -15,7 +15,7 @@ export default function Command() {
     const openInBrowser = (path: string) => {
         try {
             const url = child_process.execSync(`awk '/url/{print $3}' ${path}/.git/config`, { encoding: 'utf-8' }).trim()
-            const httpurl = url.startsWith('http') ? url : `https://${url.substring(4, url.length - 4).replace(':', '/')}`
+            const httpurl = gitUrlParse(url).toString("https")
             open(httpurl)
         } catch (e) {
             console.log(e)
