@@ -2,31 +2,13 @@ import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, T
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
 import { getAppByLanguage, getAllApp, isTerminalApp } from "./util";
+import { App, Config, Project } from "./model";
 
 type State = {
     config: Config;
     projects: Project[];
     applications: App[];
 };
-
-interface App {
-    bundleId: string | undefined;
-    icon: string;
-    shell?: string;
-    name: string;
-}
-interface Config {
-    path: string[];
-    openby: string;
-    terminal?: App;
-    defaultApp?: App;
-}
-
-interface Project {
-    projectName: string;
-    projectPath: string;
-    app: App;
-}
 
 export default function Command() {
 
@@ -110,15 +92,15 @@ export default function Command() {
         // console.log(script)
         const projects = child_process.execSync(`echo "${script}"`, { encoding: 'utf-8' }).
             split('\n').filter(item => item.length > 0 && item.endsWith('/')).map(item => item.substring(0, item.length - 1)).map(item => {
+                const defaultApp = state.config.defaultApp ? state.config.defaultApp : {
+                    icon: Icon.Finder,
+                    name: 'finder',
+                    bundleId: 'com.apple.finder'
+                }
                 return {
                     projectName: item.substring(item.lastIndexOf('/') + 1),
                     projectPath: item,
-                    app: state.config.openby != "default" ? getAppByLanguage(item, state.applications, state.config.defaultApp) :
-                        state.config.defaultApp ? state.config.defaultApp : {
-                            icon: Icon.Finder,
-                            name: 'finder',
-                            bundleId: 'com.apple.finder'
-                        }
+                    app: state.config.openby != "default" ? getAppByLanguage(item, state.applications, defaultApp) : defaultApp
                 }
             })
         // projects.forEach(item => console.log(item))
@@ -183,7 +165,7 @@ export default function Command() {
     );
 }
 
-function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath: Config) => void }) {
+function EditConfig(props: { config: Config, apps: App[], handleSubmit: (newPath: Config) => void }) {
 
     return <Action.Push
         icon={Icon.Pencil}
@@ -206,7 +188,7 @@ function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath
                     info="set default application to open your project">
                     {
                         props.apps.map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} key={app.name}/>
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} key={app.name} />
                         })
                     }
                 </Form.Dropdown>
@@ -217,7 +199,7 @@ function EditConfig(props: { config: Config, apps: any[], handleSubmit: (newPath
                 <Form.Dropdown id="terminal" title="Terminal" defaultValue={props.config.terminal?.name}>
                     {
                         props.apps.filter(item => isTerminalApp(item.name)).map(app => {
-                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} key={app.name}/>
+                            return <Form.Dropdown.Item value={app.name} title={app.name} icon={app.icon} key={app.name} />
                         })
                     }
                 </Form.Dropdown>
