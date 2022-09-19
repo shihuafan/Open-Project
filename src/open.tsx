@@ -1,13 +1,14 @@
 import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
-import { getAppByLanguage, getAllApp, isTerminalApp } from "./util";
+import { getAppByLanguage, getAllApp, isTerminalApp, getJetBrainApps } from "./util";
 import { App, Config, Project } from "./model";
 import gitUrlParse from "git-url-parse";
 type State = {
     config: Config;
     projects: Project[];
     applications: App[];
+    jetbrainApps: Map<string, App>;
 };
 
 export default function Command() {
@@ -63,6 +64,7 @@ export default function Command() {
         config: { path: [], openby: 'default' },
         projects: [],
         applications: [],
+        jetbrainApps: new Map()
     });
 
     useEffect(() => {
@@ -82,6 +84,11 @@ export default function Command() {
         getAllApp().then(apps => {
             setState((pre) => ({ ...pre, applications: apps }))
         })
+
+        getJetBrainApps().then(apps => {
+            setState((pre) => ({ ...pre, jetbrainApps: apps }))
+        })
+
     }, [])
 
     useEffect(() => {
@@ -100,7 +107,7 @@ export default function Command() {
                 return {
                     projectName: item.substring(item.lastIndexOf('/') + 1),
                     projectPath: item,
-                    app: state.config.openby != "default" ? getAppByLanguage(item, state.applications, defaultApp) : defaultApp
+                    app: state.config.openby != "default" ? getAppByLanguage(item, state.jetbrainApps, defaultApp) : defaultApp
                 }
             })
         // projects.forEach(item => console.log(item))
