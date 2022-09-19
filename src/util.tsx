@@ -2,62 +2,33 @@ import { getApplications } from "@raycast/api"
 import fs from 'fs'
 import bPlistParser from "bplist-parser";
 import { App } from "./model";
+import child_process from 'child_process'
 
 const configFileWithLanguage = new Map(Object.entries({
-    'go.mod': 'golang',
+    'go.mod': 'go',
     'requirements.txt': 'python',
     'build.gradle': 'java',
     'pom.xml': 'java',
     'package.json': 'js'
 }))
 
-const languageWithApp = new Map(Object.entries({
-    'golang': [
-        { name: 'GoLand', shell: 'goland' }
-    ],
-    'java': [
-        { name: 'IntelliJ IDEA', shell: 'idea' },
-        { name: 'IntelliJ IDEA Ultimate', shell: 'idea' }
-    ],
-    'python': [
-        { name: 'PyCharm Professional', shell: 'pycharm' },
-        { name: 'PyCharm', shell: 'pycharm' },
-        { name: 'PyCharm Community', shell: 'pycharm' },
-    ],
-    'js': [
-        { name: 'WebStorm', shell: 'webstorm' }
-    ],
-    'c': [
-        { name: 'CLion', shell: 'clion' }
-    ],
-    'cpp': [
-        { name: 'CLion', shell: 'clion' }
-    ]
-}))
+const defaultJetbrainApps = [
+    { language: 'go', name: 'GoLand', shell: 'goland', icon: 'goland.svg' },
+    { language: 'java', name: 'IDEA', shell: 'idea', icon: 'idea.svg' },
+    { language: 'python', name: 'PyCharm', shell: 'pycharm', icon: 'pycharm.svg' },
+    { language: 'js', name: 'WebStorm', shell: 'webstorm', icon: 'webstorm.svg' },
+    { language: 'c', name: 'CLion', shell: 'clion', icon: 'clion.svg' },
+    { language: 'cpp', name: 'CLion', shell: 'clion', icon: 'clion.svg' },
+]
 
 const terminalApp = ['iTerm', 'Terminal', 'Warp']
 
-export function getAppByLanguage(filePath: string, apps: App[], defaultApp: App): App {
+export function getAppByLanguage(filePath: string, apps: Map<string, App>, defaultApp: App): App {
     const languages = fs.readdirSync(filePath).
         map(item => configFileWithLanguage.get(item)).
         map(item => item ? item : '').
         filter(item => item.length > 0)
-    if (languages.length === 0) {
-        return defaultApp
-    }
-    let targetApp = defaultApp
-    const languageApps = languageWithApp.get(languages[0])
-    if (languageApps) {
-        for (const item of languageApps) {
-            const app = apps.find(app => app.name == item.name)
-            if (app) {
-                app.shell = item.shell
-                targetApp = app
-                break
-            }
-        }
-    }
-    return targetApp
+    return (languages.length > 0 && apps.has(languages[0])) ? (apps.get(languages[0]) as App) : defaultApp
 }
 
 export function isTerminalApp(appName: string): boolean {
@@ -91,4 +62,12 @@ export async function getAllApp() {
                 shell: undefined
             }
         })
+}
+
+export async function getJetBrainApps() {
+    const shell = 'type ' + defaultJetbrainApps.map(item => item.shell).join(' ')
+    const supportShell = child_process.execSync(shell, { encoding: 'utf-8' }).split('\n').map(item => item.split(' ')[0])
+    const supportJetbrainApps = new Map()
+    defaultJetbrainApps.filter(item => supportShell.indexOf(item.shell) >= 0).forEach(item => supportJetbrainApps.set(item.language, item))
+    return supportJetbrainApps
 }
