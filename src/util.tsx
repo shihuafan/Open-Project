@@ -4,31 +4,19 @@ import bPlistParser from "bplist-parser";
 import { App } from "./model";
 import child_process from 'child_process'
 
-const configFileWithLanguage = new Map(Object.entries({
-    'go.mod': 'go',
-    'requirements.txt': 'python',
-    'build.gradle': 'java',
-    'pom.xml': 'java',
-    'package.json': 'js'
-}))
-
 const defaultJetbrainApps = [
-    { language: 'go', name: 'GoLand', shell: 'goland', icon: 'goland.svg' },
-    { language: 'java', name: 'IDEA', shell: 'idea', icon: 'idea.svg' },
-    { language: 'python', name: 'PyCharm', shell: 'pycharm', icon: 'pycharm.svg' },
-    { language: 'js', name: 'WebStorm', shell: 'webstorm', icon: 'webstorm.svg' },
-    { language: 'c', name: 'CLion', shell: 'clion', icon: 'clion.svg' },
-    { language: 'cpp', name: 'CLion', shell: 'clion', icon: 'clion.svg' },
+    { name: 'GoLand', shell: 'goland', icon: 'goland.svg', configFile: ['go.mod'] },
+    { name: 'IDEA', shell: 'idea', icon: 'idea.svg', configFile: ['requirements.txt'] },
+    { name: 'PyCharm', shell: 'pycharm', icon: 'pycharm.svg', configFile: ['build.gradle', 'pom.xml'] },
+    { name: 'WebStorm', shell: 'webstorm', icon: 'webstorm.svg', configFile: ['package.json'] },
+    { name: 'CLion', shell: 'clion', icon: 'clion.svg', configFile: ['CMakeLists.txt'] },
 ]
 
 const terminalApp = ['iTerm', 'Terminal', 'Warp']
 
 export function getAppByLanguage(filePath: string, apps: Map<string, App>, defaultApp: App): App {
-    const languages = fs.readdirSync(filePath).
-        map(item => configFileWithLanguage.get(item)).
-        map(item => item ? item : '').
-        filter(item => item.length > 0)
-    return (languages.length > 0 && apps.has(languages[0])) ? (apps.get(languages[0]) as App) : defaultApp
+    const configFile = fs.readdirSync(filePath).find(f => apps.has(f))
+    return (configFile && apps.has(configFile)) ? (apps.get(configFile) as App) : defaultApp
 }
 
 export function isTerminalApp(appName: string): boolean {
@@ -68,6 +56,8 @@ export async function getJetBrainApps() {
     const shell = 'type ' + defaultJetbrainApps.map(item => item.shell).join(' ')
     const supportShell = child_process.execSync(shell, { encoding: 'utf-8' }).split('\n').map(item => item.split(' ')[0])
     const supportJetbrainApps = new Map()
-    defaultJetbrainApps.filter(item => supportShell.indexOf(item.shell) >= 0).forEach(item => supportJetbrainApps.set(item.language, item))
+    defaultJetbrainApps.filter(item => supportShell.indexOf(item.shell) >= 0).forEach(item => {
+        item.configFile.forEach(cf => supportJetbrainApps.set(cf, item))
+    })
     return supportJetbrainApps
 }
