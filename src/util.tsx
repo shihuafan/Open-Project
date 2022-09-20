@@ -53,11 +53,15 @@ export async function getAllApp() {
 }
 
 export async function getJetBrainApps() {
-    const shell = 'type ' + defaultJetbrainApps.map(item => item.shell).join(' ')
-    const supportShell = child_process.execSync(shell, { encoding: 'utf-8' }).split('\n').map(item => item.split(' ')[0])
     const supportJetbrainApps = new Map()
-    defaultJetbrainApps.filter(item => supportShell.indexOf(item.shell) >= 0).forEach(item => {
-        item.configFile.forEach(cf => supportJetbrainApps.set(cf, item))
-    })
+    try {
+        const shell = 'type ' + defaultJetbrainApps.map(item => item.shell).join(' ')
+        const supportShell = child_process.execSync(shell, { encoding: 'utf-8' }).split('\n').map(item => item.split(' ')[0])
+        defaultJetbrainApps.filter(item => supportShell.indexOf(item.shell) >= 0).forEach(item => {
+            item.configFile.forEach(cf => supportJetbrainApps.set(cf, item))
+        })
+    } catch (err) {
+        console.log(err);
+    }
     return supportJetbrainApps
 }
