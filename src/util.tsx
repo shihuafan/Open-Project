@@ -6,8 +6,8 @@ import child_process from 'child_process'
 
 const defaultJetbrainApps = [
     { name: 'GoLand', shell: 'goland', icon: 'goland.svg', configFile: ['go.mod'] },
-    { name: 'IDEA', shell: 'idea', icon: 'idea.svg', configFile: ['requirements.txt'] },
-    { name: 'PyCharm', shell: 'pycharm', icon: 'pycharm.svg', configFile: ['build.gradle', 'pom.xml'] },
+    { name: 'IDEA', shell: 'idea', icon: 'idea.svg', configFile: ['build.gradle', 'pom.xml'] },
+    { name: 'PyCharm', shell: 'pycharm', icon: 'pycharm.svg', configFile: ['requirements.txt'] },
     { name: 'WebStorm', shell: 'webstorm', icon: 'webstorm.svg', configFile: ['package.json'] },
     { name: 'CLion', shell: 'clion', icon: 'clion.svg', configFile: ['CMakeLists.txt'] },
 ]
