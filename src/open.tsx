@@ -95,7 +95,7 @@ export default function Command() {
         if (state.config.path.length == 0 || Array.from(state.applications.keys()).length == 0) {
             return
         }
-        const script = state.config.path.map((path) => `$(ls -dtF ${path})`).join('\n')
+        const script = `$(ls -dtF ${state.config.path.join(' ')})`
         // console.log(script)
         const projects = child_process.execSync(`echo "${script}"`, { encoding: 'utf-8' }).
             split('\n').filter(item => item.length > 0 && item.endsWith('/')).map(item => item.substring(0, item.length - 1)).map(item => {
