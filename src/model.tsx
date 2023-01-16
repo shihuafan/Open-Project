@@ -9,10 +9,16 @@ export interface Config {
     openby: string;
     terminal?: App;
     defaultApp?: App;
+    enableVscodeRemote: boolean;
 }
 
 export interface Project {
     projectName: string;
     projectPath: string;
     app: App;
+}
+
+export interface VscodeRemoteConfig {
+    host: string
+    folder: string
 }

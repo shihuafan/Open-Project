@@ -1,7 +1,7 @@
 import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
-import { getAppByLanguage, getAllApp, isTerminalApp, getJetBrainApps } from "./util";
+import { getAppByLanguage, getAllApp, isTerminalApp, getJetBrainApps, loadVscodeConfig } from "./util";
 import { App, Config, Project } from "./model";
 import gitUrlParse from "git-url-parse";
 type State = {
@@ -61,7 +61,7 @@ export default function Command() {
     );
 
     const [state, setState] = useState<State>({
-        config: { path: [], openby: 'default' },
+        config: { path: [], openby: 'default', enableVscodeRemote: false },
         projects: [],
         applications: [],
         jetbrainApps: new Map()
@@ -118,56 +118,82 @@ export default function Command() {
 
     return (
         <List>
-            {
-                state.projects.length > 0 ? state.projects.map((project) => (
-                    <List.Item
-                        key={project.projectPath}
-                        title={project.projectName}
-                        subtitle={project.projectPath}
-                        icon={project.app.icon ? project.app.icon : Icon.Code}
-                        actions={
-                            <ActionPanel>
-                                <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
-                                <Action icon={Icon.Globe} title="Open In Browser" onAction={() => { openInBrowser(project.projectPath) }} />
-                                <Action.Open icon={Icon.Terminal} title="Open In Terminal" shortcut={{ modifiers: ["cmd"], key: "t" }}
-                                    application={state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'}
-                                    target={project.projectPath} />
-                                {
-                                    state.config.defaultApp ? <Action.Open icon={state.config.defaultApp.icon} shortcut={{ modifiers: ["opt"], key: "enter" }}
-                                        title={`Open In ${state.config.defaultApp.name}`}
-                                        application={state.config.defaultApp.bundleId} target={project.projectPath} /> :
-                                        <Action.Open icon={Icon.Finder} title="Open In Finder" shortcut={{ modifiers: ["opt"], key: "enter" }}
-                                            application='com.apple.finder' target={project.projectPath} />
-                                }
-                                <ActionPanel.Section>
-                                    <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
-                                </ActionPanel.Section>
-                            </ActionPanel>
-                        }
-                    />
-                )) : state.config.path.length > 0 ?
-                    <List.Item
-                        title='Loading ......'
-                        icon={Icon.Circle}
-                        actions={
-                            <ActionPanel>
-                                <ActionPanel.Section>
-                                    <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
-                                </ActionPanel.Section>
-                            </ActionPanel>
-                        }
-                    /> :
-                    <List.Item
-                        title='Add New Project'
-                        actions={
-                            <ActionPanel>
-                                <ActionPanel.Section>
-                                    <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
-                                </ActionPanel.Section>
-                            </ActionPanel>
-                        }
-                    />
-            }
+            <List.Section title="local project">
+                {
+                    state.projects.length > 0 ? state.projects.map((project) => (
+                        <List.Item
+                            key={project.projectPath}
+                            title={project.projectName}
+                            subtitle={project.projectPath}
+                            icon={project.app.icon ? project.app.icon : Icon.Code}
+                            actions={
+                                <ActionPanel>
+                                    <Action icon={project.app.icon} title="Open" onAction={() => { openInIDE(project) }} />
+                                    <Action icon={Icon.Globe} title="Open In Browser" onAction={() => { openInBrowser(project.projectPath) }} />
+                                    <Action.Open icon={Icon.Terminal} title="Open In Terminal" shortcut={{ modifiers: ["cmd"], key: "t" }}
+                                        application={state.config.terminal?.bundleId ? state.config.terminal.bundleId : 'com.apple.Terminal'}
+                                        target={project.projectPath} />
+                                    {
+                                        state.config.defaultApp ? <Action.Open icon={state.config.defaultApp.icon} shortcut={{ modifiers: ["opt"], key: "enter" }}
+                                            title={`Open In ${state.config.defaultApp.name}`}
+                                            application={state.config.defaultApp.bundleId} target={project.projectPath} /> :
+                                            <Action.Open icon={Icon.Finder} title="Open In Finder" shortcut={{ modifiers: ["opt"], key: "enter" }}
+                                                application='com.apple.finder' target={project.projectPath} />
+                                    }
+                                    <ActionPanel.Section>
+                                        <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
+                                    </ActionPanel.Section>
+                                </ActionPanel>
+                            }
+                        />
+                    )) : state.config.path.length > 0 ?
+                        <List.Item
+                            title='Loading ......'
+                            icon={Icon.Circle}
+                            actions={
+                                <ActionPanel>
+                                    <ActionPanel.Section>
+                                        <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
+                                    </ActionPanel.Section>
+                                </ActionPanel>
+                            }
+                        /> :
+                        <List.Item
+                            title='Add New Project'
+                            actions={
+                                <ActionPanel>
+                                    <ActionPanel.Section>
+                                        <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
+                                    </ActionPanel.Section>
+                                </ActionPanel>
+                            }
+                        />
+                }
+            </List.Section>
+            <List.Section title="vscode remote">
+                {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    loadVscodeConfig().filter(i => state.config.enableVscodeRemote).map(item => (
+                        <List.Item
+                            key={`${item.host}:${item.folder}`}
+                            title={`${item.host}:${item.folder.substring(1 + item.folder.lastIndexOf('/'))}`}
+                            subtitle={item.folder}
+                            icon='remote.png'
+                            actions={
+                                <ActionPanel>
+                                    <Action icon={Icon.Code} title="Open" onAction={() => {
+                                        child_process.exec(`code --folder-uri=vscode-remote://ssh-remote+${item.host}${item.folder}`)
+                                    }} />
+                                    <ActionPanel.Section>
+                                        <EditConfig config={state.config} apps={state.applications} handleSubmit={handleSubmit} />
+                                    </ActionPanel.Section>
+                                </ActionPanel>
+                            }
+                        />
+                    ))
+                }
+            </List.Section>
+
         </List>
     );
 }
@@ -186,6 +212,7 @@ function EditConfig(props: { config: Config, apps: App[], handleSubmit: (newPath
                             openby: values.openby,
                             terminal: props.apps.find(app => app.name === values.terminal),
                             defaultApp: props.apps.find(app => app.name === values.default_app),
+                            enableVscodeRemote: values.enable_vscode_remote
                         })
                     }} />
                 </ActionPanel>
@@ -210,6 +237,18 @@ function EditConfig(props: { config: Config, apps: App[], handleSubmit: (newPath
                         })
                     }
                 </Form.Dropdown>
+                <Form.Checkbox id="enable_vscode_remote" title="Vscode Remote" label="load remote project by vscode?" defaultValue={props.config.enableVscodeRemote} onChange={(enable) => {
+                    if (enable) {
+                        child_process.exec('code -v', (e) => {
+                            if (e) {
+                                showToast({
+                                    style: Toast.Style.Failure,
+                                    title: "can not execute `code` in terminal"
+                                });
+                            }
+                        })
+                    }
+                }} />
             </Form>
         } />
 }

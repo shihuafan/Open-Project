@@ -1,8 +1,10 @@
 import { getApplications } from "@raycast/api"
 import fs from 'fs'
 import bPlistParser from "bplist-parser";
-import { App } from "./model";
+import { App, VscodeRemoteConfig } from "./model";
 import child_process from 'child_process'
+import { useSQL } from "@raycast/utils";
+import { homedir } from "os";
 
 const defaultJetbrainApps = [
     { name: 'GoLand', shell: 'goland', icon: 'goland.svg', configFile: ['go.mod'] },
@@ -64,4 +66,21 @@ export async function getJetBrainApps() {
         console.log(err);
     }
     return supportJetbrainApps
+}
+
+export function loadVscodeConfig(): VscodeRemoteConfig[] {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = useSQL<any>(
+        `${homedir()}/Library/Application Support/Code/User/globalStorage/state.vscdb`,
+        "select * from ItemTable where key='ms-vscode-remote.remote-ssh';"
+    );
+    if (data) {
+        const values = JSON.parse(data[0]['value'])['folder.history.v1']
+        const hosts = Object.keys(values)
+        const config = hosts.filter(host => !host.match(/\d+\.\d+\.\d+\.\d+/)).map(host => {
+            return values[host].map((f: string) => { return { host: host, folder: f } })
+        }).reduce((arr1, arr2) => arr1.concat(arr2))
+        return config
+    }
+    return []
 }

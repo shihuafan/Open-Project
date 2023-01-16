@@ -16,6 +16,7 @@
     ],
     "dependencies": {
         "@raycast/api": "^1.38.3",
+        "@raycast/utils": "^1.4.15",
         "bplist-parser": "^0.3.2",
         "git-url-parse": "^13.1.0",
         "react": "^18.2.0"
