@@ -2,7 +2,7 @@ import { Action, ActionPanel, Form, Icon, List, LocalStorage, open, showToast, T
 import { useCallback, useEffect, useState } from "react";
 import child_process from 'child_process'
 import { getAppByLanguage, getAllApp, isTerminalApp, getJetBrainApps, loadVscodeConfig } from "./util";
-import { App, Config, Project, VscodeRemoteConfig } from "./model";
+import { App, Config, Project } from "./model";
 import gitUrlParse from "git-url-parse";
 type State = {
     config: Config;
@@ -122,7 +122,7 @@ export default function Command() {
         <List filtering={false} onSearchTextChange={setSearchText}>
             <List.Section title="local project">
                 {
-                    state.projects.length > 0 ? state.projects.filter(project => project.projectName.includes(searchText)).map((project) => (
+                    state.projects.length > 0 ? state.projects.filter(project => display(project.projectName, searchText)).map((project) => (
                         <List.Item
                             key={project.projectPath}
                             title={project.projectName}
@@ -175,7 +175,7 @@ export default function Command() {
             <List.Section title="vscode remote">
                 {
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    loadVscodeConfig().filter(item => state.config.enableVscodeRemote && displatVscodeRemote(item, searchText)).map(item => (
+                    loadVscodeConfig().filter(item => state.config.enableVscodeRemote && display(`${item.host}:${item.folder.substring(1 + item.folder.lastIndexOf('/'))}`, searchText)).map(item => (
                         <List.Item
                             key={`${item.host}:${item.folder}`}
                             title={`${item.host}:${item.folder.substring(1 + item.folder.lastIndexOf('/'))}`}
@@ -200,14 +200,8 @@ export default function Command() {
     );
 }
 
-function displatVscodeRemote(item: VscodeRemoteConfig, searchText: string): boolean {
-    const searchItem = searchText.split(' ')
-    console.log(searchItem)
-    return searchItem.length <= 0 ||
-        (searchItem.length == 1 && item.folder.includes(searchItem[0])) ||
-        (searchItem.length == 1 && item.host.includes(searchItem[0])) ||
-        (searchItem.length == 2 && item.host.includes(searchItem[0]) && item.folder.includes(searchItem[1])) ||
-        (searchItem.length == 2 && item.host.includes(searchItem[1]) && item.folder.includes(searchItem[0]))
+function display(title: string, searchText: string): boolean {
+    return searchText.split(' ').find(item => !title.includes(item)) == undefined
 }
 
 function EditConfig(props: { config: Config, apps: App[], handleSubmit: (newPath: Config) => void }) {
